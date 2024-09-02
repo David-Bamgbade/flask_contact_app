@@ -62,12 +62,6 @@ def add_contact():
         raise Exception("Contact Already Exist")
 
 
-@app.route('/logout', methods=['POST'])
-def logout():
-    logged_in_user = None
-    return jsonify({"message": "Logged out successfully"})
-
-
 @app.route("/signup", methods=['POST'])
 def sign_up():
     data = request.json
@@ -77,7 +71,7 @@ def sign_up():
         user.first_name = validate_first_name(data['first_name'].lower())
         user.last_name = validate_last_name(data['last_name'].lower())
         user.email = validate_email(data['email'].lower())
-        user.phone_number = validate_phone_number(data['phone_number'].lower())
+        user.phone_number = validate_phone_number(data['phone_number'])
         user.password = validate_password(data['password'].lower())
         user.get_list_of_contacts()
         contactDb.insert_one(data)
@@ -90,13 +84,13 @@ def sign_up():
 @app.route('/login', methods=['POST'])
 def login():
     data = request.json
-    if not data or not data.get('email') or not data.get('password'):
+    if not data or not data.get('email'.lower()) or not data.get('password'.lower()):
         return jsonify({"error": "Email and password are required"})
-    email = data['email']
-    password = data['password']
-    user = contactDb.find_one({"email": email})
+    email = validate_email(data['email'].lower())
+    password = validate_password(data['password'.lower()])
+    user = contactDb.find_one({"email".lower(): email})
     if user:
-        if user['password'] == password:
+        if user['password'.lower()] == password:
             return jsonify({"message": "Login successful"})
         else:
             return jsonify({"error": "Invalid username or password"})
@@ -112,12 +106,12 @@ def find_contact_by_phone_number():
         contact['_id'] = str(contact['_id'])
         return jsonify(contact), 200
     else:
-        return jsonify({"message": "Contact not found"}), 404
+        return jsonify({"message": "Contact not found"})
 
 
 @app.route("/find_by_email", methods=['GET'])
 def find_contact_by_email():
-    email = request.args.get('email')
+    email = validate_email(request.args.get('email')).lower()
     if not email:
         return jsonify({"error": "Email is required"})
     contact = contactDb.find_one({"email": email})
@@ -130,8 +124,8 @@ def find_contact_by_email():
 
 @app.route("/find_by_name", methods=['GET'])
 def find_contact_by_name():
-    firstname = request.args.get('first_name')
-    lastname = request.args.get('last_name')
+    firstname = validate_first_name(request.args.get('first_name')).lower()
+    lastname = validate_last_name(request.args.get('last_name')).lower()
     if not firstname and not lastname:
         return jsonify({"error": "Name is required"})
     contact = contactDb.find_one({"First_name": firstname})
@@ -157,7 +151,7 @@ def delete_contact_by_number():
 
 @app.route('/delete_by_email', methods=['DELETE'])
 def delete_contact_by_email():
-    email = request.args.get('email')
+    email = validate_email(request.args.get('email')).lower()
     if not email:
         return jsonify({"error": "email is required"})
     result = contactDb.delete_one({"email": email})
@@ -169,8 +163,8 @@ def delete_contact_by_email():
 
 @app.route('/delete_by_name', methods=['DELETE'])
 def delete_contact_by_name():
-    firstname = request.args.get('first_name')
-    lastname = request.args.get('last_name')
+    firstname = validate_first_name(request.args.get('first_name')).lower()
+    lastname = validate_last_name(request.args.get('last_name')).lower()
     if not firstname and lastname:
         return jsonify({"error": "Name is required"})
     contact1 = contactDb.delete_one({"First_name": firstname})
